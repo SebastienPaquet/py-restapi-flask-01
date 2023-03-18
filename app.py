@@ -1,21 +1,7 @@
 from flask import Flask, request
+from db import items, stores
 
 app = Flask(__name__)
-
-stores = [
-    {
-        "name": "First Store",
-        "items": [
-            {
-                "name": "Cadre",
-                "price": 499.99
-            },{
-                "name": "Volet",
-                "price": 199.99
-            }
-        ]
-    }
-]
 
 @app.get("/store")      #endpoint #http://127.0.0.1:5000/store
 def get_stores():       #function associated to the endpoint
