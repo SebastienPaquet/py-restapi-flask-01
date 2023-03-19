@@ -26,22 +26,6 @@ def get_all_stores():                           #function associated to the endp
     return {"stores": list(stores.values())}
 
 
-@app.get("/store/<string:store_id>")
-def get_store(store_id: str):
-    try:
-        return stores[store_id]
-    except KeyError:
-        abort(404, message= "Store not found.")
-
-
-@app.delete("/store/<string:store_id>")
-def delete_store(store_id: str):
-    try:
-        del stores[store_id]
-        return {"message": "Store deleted."}
-    except KeyError:
-        abort(404, message="Store not found")
-
 
 @app.post("/item")
 def create_item():
