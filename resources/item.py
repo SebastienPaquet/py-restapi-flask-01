@@ -3,6 +3,7 @@ from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from db import items
+from schemas import ItemSchema, ItemUpdateSchema
 
 
 blp = Blueprint("items", __name__, description="Operations on items") #(name, import_name, description_for_API_doc )
@@ -23,10 +24,12 @@ class Store(MethodView):
         except KeyError:
             abort(404, message="Item not found")
 
-    def put(self, item_id):
-        item_data = request.get_json()
-        if not(set(("price","name")).issubset(set(item_data))):
-            abort(404, message="Bad request. Ensure name and price are included.")
+    @blp.arguments(ItemUpdateSchema)
+    def put(self, item_data, item_id):
+        #item_data = request.get_json()
+
+        # if not(set(("price","name")).issubset(set(item_data))):
+        #     abort(404, message="Bad request. Ensure name and price are included.")
         try:
             item = items[item_id]
             item |= item_data       #in-place merge-right (update) operator, equivalent to d1.update(d2), here item.update(item_data)
@@ -39,12 +42,13 @@ class ItemList(MethodView):
     def get(self):
         return {"items": list(items.values())}
 
-    def post(self):
-        item_data = request.get_json()
-        if not (set(("store_id", "name", "price")).issubset(set(item_data))):
-            abort(400, message= "Bad request. Ensure store_id, name and price are included.")
-        # if item_data["store_id"] not in stores:
-        #     abort(404, message= "Store not found.")
+    @blp.arguments(ItemSchema)
+    def post(self, item_data):
+        #item_data = request.get_json()
+        # if not (set(("store_id", "name", "price")).issubset(set(item_data))):
+        #     abort(400, message= "Bad request. Ensure store_id, name and price are included.")
+        ## if item_data["store_id"] not in stores:
+        ##     abort(404, message= "Store not found.")
         for item in items.values():
             if (item_data["name"] == item["name"] and item_data["store_id"] == item["store_id"]):
                 abort(400, message=f"Item {item['name']} already exist in the provided store")
@@ -52,4 +56,4 @@ class ItemList(MethodView):
         item_id = uuid.uuid4().hex
         item = {**item_data, "id": item_id}
         items[item_id] = item
-        return item, 201
+        return item
