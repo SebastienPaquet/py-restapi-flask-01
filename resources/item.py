@@ -2,7 +2,11 @@ import uuid
 from flask import request
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from db import items
+from sqlalchemy.exc import SQLAlchemyError,IntegrityError  #exc means exception, SQLAlchemyError is the base SQLAlchemy Error class that all exceptions inherits from
+
+#from db import items
+from db import db
+from models import ItemModel
 from schemas import ItemSchema, ItemUpdateSchema
 
 
@@ -52,16 +56,22 @@ class ItemList(MethodView):
     @blp.arguments(ItemSchema)
     @blp.response(201, ItemSchema)
     def post(self, item_data):
-        #item_data = request.get_json()
-        # if not (set(("store_id", "name", "price")).issubset(set(item_data))):
-        #     abort(400, message= "Bad request. Ensure store_id, name and price are included.")
-        ## if item_data["store_id"] not in stores:
-        ##     abort(404, message= "Store not found.")
-        for item in items.values():
-            if (item_data["name"] == item["name"] and item_data["store_id"] == item["store_id"]):
-                abort(400, message=f"Item {item['name']} already exist in the provided store")
+        item = ItemModel(**item_data)
+        
+        try: #validation are made on the database try insert
+            db.session.add(item)
+            db.session.commit()
+        except IntegrityError:
+            abort(400, message="Un article avec ce nom existe déjà.")
+        except SQLAlchemyError:
+            abort(500, message="Une erreur est survenue lors de l'import de cet article.")
 
-        item_id = uuid.uuid4().hex
-        item = {**item_data, "id": item_id}
-        items[item_id] = item
+        # for item in items.values():
+        #     if (    item_data["name"] == item["name"] 
+        #             and item_data["store_id"] == item["store_id"]):
+        #         abort(400, message=f"Item {item['name']} already exist in the provided store")
+        #item_id = uuid.uuid4().hex
+        #item = {**item_data, "id": item_id}
+        #items[item_id] = item
+
         return item
