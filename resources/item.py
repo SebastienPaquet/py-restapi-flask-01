@@ -37,8 +37,11 @@ class Item(MethodView):
         else:
             item = ItemModel(id=item_id, **item_data)  # if not found creates item
 
+            # try:  # validation are made on the database try insert
         db.session.add(item)
         db.session.commit()
+        # except SQLAlchemyError:
+        #     abort(500, message="Une erreur est survenue lors de l'import de cet article.")
 
         return item
 
@@ -57,8 +60,8 @@ class ItemList(MethodView):
         try:  # validation are made on the database try insert
             db.session.add(item)
             db.session.commit()
-        except IntegrityError:
-            abort(400, message="Un article avec ce nom existe déjà.")
+        # except IntegrityError:
+        #     abort(400, message="Un article avec ce nom existe déjà.")
         except SQLAlchemyError:
             abort(500, message="Une erreur est survenue lors de l'import de cet article.")
 
