@@ -57,7 +57,7 @@ class Tag(MethodView):
             db.session.delete(tag)
             db.session.commit()
             return {"message": "Tag supprimé."}
-        abort(400, "Tag non supprimé, Validez que le tag n'est pas associé à un article puis réessayez.")
+        abort(400, message="Tag non supprimé, Validez que le tag n'est pas associé à un article puis réessayez.")
 
 
 @blp.route("/item/<string:item_id>/tag/<string:tag_id>")
