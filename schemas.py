@@ -27,6 +27,7 @@ class ItemUpdateSchema(Schema):
 class ItemSchema(PlainItemSchema):
     store_id = fields.Integer(required=True, load_only=True)  # must be in incoming json only
     store = fields.Nested(PlainStoreSchema(), dump_only=True)
+    tags = fields.List(fields.Nested(PlainTagSchema()), dump_only=True)
 
 
 class StoreSchema(PlainStoreSchema):
@@ -37,3 +38,10 @@ class StoreSchema(PlainStoreSchema):
 class TagSchema(PlainTagSchema):
     store_id = fields.Integer(load_only=True)  # removing required=True, why ?
     store = fields.Nested(PlainStoreSchema(), dump_only=True)
+    items = fields.List(fields.Nested(PlainItemSchema()), dump_only=True)
+
+
+class TagAndItemSchema(Schema):
+    message = fields.Str()
+    item = fields.Nested(ItemSchema)
+    tag = fields.Nested(TagSchema)

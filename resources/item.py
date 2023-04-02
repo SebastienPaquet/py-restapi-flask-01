@@ -4,7 +4,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 
 # exc means exception, SQLAlchemyError is the base SQLAlchemy Error class that all exceptions inherits from
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy.exc import SQLAlchemyError  # , IntegrityError
 
 from db import db
 from models import ItemModel
