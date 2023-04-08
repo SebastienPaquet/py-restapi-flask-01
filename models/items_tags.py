@@ -1,9 +1,9 @@
-from db import db
+from db import sqlAlch
 
 
-class ItemsTagsModel(db.Model):
+class ItemsTagsModel(sqlAlch.Model):
     __tablename__ = "items_tags"
 
-    id = db.Column(db.Integer, primary_key=True)
-    item_id = db.Column(db.Integer, db.ForeignKey("items.id"))
-    tag_id = db.Column(db.Integer, db.ForeignKey("tags.id"))
+    id = sqlAlch.Column(sqlAlch.Integer, primary_key=True)
+    item_id = sqlAlch.Column(sqlAlch.Integer, sqlAlch.ForeignKey("items.id"))
+    tag_id = sqlAlch.Column(sqlAlch.Integer, sqlAlch.ForeignKey("tags.id"))

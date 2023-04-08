@@ -2,7 +2,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError
 
-from db import db
+from db import sqlAlch
 from models import TagModel, StoreModel, ItemModel
 from schemas import TagSchema, TagAndItemSchema
 
@@ -11,7 +11,7 @@ blp = Blueprint("tags", __name__, description="Operations on tags")
 # (name, import_name, description_for_API_doc )
 
 
-@blp.route("/store/<string:store_id>/tag")
+@blp.route("/store/<int:store_id>/tag")
 class TagsInStore(MethodView):
     @blp.response(200, TagSchema(many=True))
     def get(self, store_id):
@@ -26,14 +26,14 @@ class TagsInStore(MethodView):
         tag = TagModel(**tag_data, store_id=store_id)
 
         try:
-            db.session.add(tag)
-            db.session.commit()
+            sqlAlch.session.add(tag)
+            sqlAlch.session.commit()
         except SQLAlchemyError as e:
             abort(500, message=str(e))
         return tag
 
 
-@blp.route("/tag/<string:tag_id>")
+@blp.route("/tag/<int:tag_id>")
 class Tag(MethodView):
     @blp.response(200, TagSchema)
     def get(self, tag_id):
@@ -45,23 +45,24 @@ class Tag(MethodView):
         description="Retourné si Suppression du tag puisqu'aucun item associé.",  # documentation purpose
         example={"message": "Tag supprimé."},
     )
+    # alternative responses
     @blp.alt_response(404, description="Retourné si Tag non trouvé.")
     @blp.alt_response(
         400,
         description="Retourné si le tag est associé à au moins un autre article et le tag n'est donc pas supprimé.",
     )
-    # alternative responses
     def delete(self, tag_id):
         tag = TagModel.query.get_or_404(tag_id)
         if not tag.items:
-            db.session.delete(tag)
-            db.session.commit()
+            sqlAlch.session.delete(tag)
+            sqlAlch.session.commit()
             return {"message": "Tag supprimé."}
         abort(400, message="Tag non supprimé, Validez que le tag n'est pas associé à un article puis réessayez.")
 
 
-@blp.route("/item/<string:item_id>/tag/<string:tag_id>")
+@blp.route("/item/<int:item_id>/tag/<int:tag_id>")
 class LinksTagToItem(MethodView):
+    # no @blp.arguments() has no JSON body is posted
     @blp.response(201, TagSchema)
     def post(self, item_id, tag_id):
         item = ItemModel.query.get_or_404(item_id)
@@ -72,8 +73,8 @@ class LinksTagToItem(MethodView):
 
         item.tags.append(tag)
         try:
-            db.session.add(item)
-            db.session.commit()
+            sqlAlch.session.add(item)
+            sqlAlch.session.commit()
         except SQLAlchemyError:
             abort(500, message="Une erreur est survenue à l'association du tag à l'article.")
 
@@ -89,8 +90,8 @@ class LinksTagToItem(MethodView):
 
         item.tags.remove(tag)
         try:
-            db.session.add(item)
-            db.session.commit()
+            sqlAlch.session.add(item)
+            sqlAlch.session.commit()
         except SQLAlchemyError:
             abort(500, message="Une erreur est survenue à la déassociation du tag et l'article.")
 

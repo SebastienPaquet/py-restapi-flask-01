@@ -1,12 +1,16 @@
 import os
-from flask import Flask
+
+from flask import Flask, jsonify
 from flask_smorest import Api
-from db import db
-import models  # noqa: F401
+from flask_jwt_extended import JWTManager
+
+from db import sqlAlch
+import models
 
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
-from resources.tag import blp as TagBluePrint
+from resources.tag import blp as TagBlueprint
+from resources.user import blp as UserBlueprint
 
 
 def create_app(db_url=None):
@@ -21,17 +25,50 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
-    db.init_app(app)
+    sqlAlch.init_app(app)
+    api = Api(app)  # connect the flask_smorest to the app
+
+    app.config["JWT_SECRET_KEY"] = "2638147369156449128617624573020694955"
+    # making sure the JWT was created by the app
+    # python, import secrets, secrets.SystemRandom().getrandbits(128)
+    # to store in variable environment, not in the code
+    jwt = JWTManager(app)  # noqa: F841
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return (
+            jsonify({"message": "The token has expired.", "error": "token_expired"}),
+            401,
+        )
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return (
+            jsonify({"message": "Signature verification failed.", "error": "invalid_token"}),
+            401,
+        )
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return (
+            jsonify(
+                {
+                    "description": "Request does not contain an access token.",
+                    "error": "authorization_required",
+                }
+            ),
+            401,
+        )
 
     # @app.before_first_request #NO LONGER REQUIRED IN FLASK_ALCHEMY
     # def create_tables():      #NO LONGER REQUIRED IN FLASK_ALCHEMY
     with app.app_context():
-        db.create_all()  # create tables from imported models
+        sqlAlch.create_all()  # create tables from imported models
 
-    api = Api(app)  # connect the flask_smorest to the app
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
-    api.register_blueprint(TagBluePrint)
+    api.register_blueprint(TagBlueprint)
+    api.register_blueprint(UserBlueprint)
 
     return app
 
