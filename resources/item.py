@@ -23,7 +23,7 @@ class Item(MethodView):
         item = ItemModel.query.get_or_404(item_id)  # get or abort
         return item
 
-    @jwt_required()
+    @jwt_required(refresh=True)
     def delete(self, item_id):
         item = ItemModel.query.get_or_404(item_id)
         sqlAlch.session.delete(item)
@@ -41,11 +41,11 @@ class Item(MethodView):
         else:
             item = ItemModel(id=item_id, **item_data)  # if not found creates item
 
-            # try:  # validation are made on the database try insert
-        sqlAlch.session.add(item)
-        sqlAlch.session.commit()
-        # except SQLAlchemyError:
-        #     abort(500, message="Une erreur est survenue lors de l'import de cet article.")
+        try:  # validation are made on the database try insert
+            sqlAlch.session.add(item)
+            sqlAlch.session.commit()
+        except SQLAlchemyError:
+            abort(500, message="Une erreur est survenue lors de l'import de cet article.")
 
         return item
 

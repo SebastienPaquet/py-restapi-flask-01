@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 
 from flask import Flask, jsonify
@@ -5,7 +6,8 @@ from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 
 from db import sqlAlch
-import models
+import models  # noqa: F401
+from blocklist import BLOCKLIST
 
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
@@ -29,10 +31,31 @@ def create_app(db_url=None):
     api = Api(app)  # connect the flask_smorest to the app
 
     app.config["JWT_SECRET_KEY"] = "2638147369156449128617624573020694955"
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=15)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=14)
     # making sure the JWT was created by the app
     # python, import secrets, secrets.SystemRandom().getrandbits(128)
     # to store in variable environment, not in the code
     jwt = JWTManager(app)  # noqa: F841
+
+    @jwt.token_in_blocklist_loader
+    def check_if_token_in_blocklist(jwt_header, jwt_payload):
+        return jwt_payload["jti"] in BLOCKLIST
+        # if true @jwt.revoked_token_loader is called and his message is returned
+
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        return (
+            jsonify({"description": "The token has been removed", "error": "token_removed"}),
+            401,
+        )
+
+    @jwt.needs_fresh_token_loader
+    def token_not_fresh_callback(jwt_header, jwt_payload):
+        return (
+            jsonify({"description": "The token is not fresh.", "error": "fresh_token_required"}),
+            401,
+        )
 
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):

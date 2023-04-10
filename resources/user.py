@@ -1,7 +1,7 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from passlib.hash import pbkdf2_sha256
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt, jwt_required, create_refresh_token, get_jwt_identity
 
 # exc means exception, SQLAlchemyError is the base SQLAlchemy Error class that all exceptions inherits from
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from db import sqlAlch
 from models import UserModel
 from schemas import UserSchema
-
+from blocklist import BLOCKLIST
 
 blp = Blueprint("users", __name__, description="Operations on users")
 # (name, import_name, description_for_API_doc )
@@ -54,10 +54,35 @@ class UserLogin(MethodView):
         ).first()
 
         if user and pbkdf2_sha256.verify(user_data["password"], user.password):
-            access_token = create_access_token(
-                identity=user.id
-            )  # le user_id est inscrit dans le JWT payload "sub" (subject)
-            return {"acces_token": access_token}
+            access_token = create_access_token(identity=user.id, fresh=True)
+            # le user_id est inscrit dans le JWT payload "sub" (subject)
+            refresh_token = create_refresh_token(identity=user.id)
+            return {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+            }
             # JWT must be private and safe, anybody with the JWT can impersonate the user
 
         abort(401, message="Identifiants invalides.")
+
+
+@blp.route("/logout")
+class UserLogout(MethodView):
+    @jwt_required()
+    def post(self):
+        jti = get_jwt()["jti"]
+        # returns dict of the payload of jwt, and then the jti value which is the jwt identifier
+        BLOCKLIST.add(jti)
+        # blocklist should be saved in a database..
+        # ..or in Redis commonly used fot this sort of thing
+        return {"message": "Déconnexion réussie."}
+
+
+@blp.route("/refresh")
+class UserProvideNonFreshToken(MethodView):
+    @jwt_required(refresh=True)
+    def post(self):
+        current_user_jti = get_jwt_identity()  # as #jti = get_jwt()["jti"]
+        new_token = create_access_token(identity=current_user_jti, fresh=False)
+        # can set expiration time of refresh token
+        return {"access_token": new_token}
