@@ -5,6 +5,8 @@ from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 
+# from flask_migrate import Migrate
+
 from db import sqlAlch
 import models  # noqa: F401
 from blocklist import BLOCKLIST
@@ -26,7 +28,7 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"  # documentation tool
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
-    app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     sqlAlch.init_app(app)
     api = Api(app)  # connect the flask_smorest to the app
 
@@ -85,8 +87,11 @@ def create_app(db_url=None):
 
     # @app.before_first_request #NO LONGER REQUIRED IN FLASK_ALCHEMY
     # def create_tables():      #NO LONGER REQUIRED IN FLASK_ALCHEMY
+
     with app.app_context():
         sqlAlch.create_all()  # create tables from imported models
+    # Flask-Migrate will create our database
+    # migrate = Migrate(app, sqlAlch)
 
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
